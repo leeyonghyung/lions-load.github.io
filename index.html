@@ -7,12 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <title>Lions Road — 삼성 라이온즈 직관 가이드</title>
-
-  <!-- React + Babel CDN -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; background: #e8edf2; }
@@ -21,7 +18,6 @@
 </head>
 <body>
   <div id="root"></div>
-
   <script type="text/babel">
     const { useState } = React;
 
@@ -69,7 +65,7 @@ const ROUTES_FROM_DONGDAEGU = [
 const ORIGINS = ["서울 강남", "서울 강북", "수원", "용인", "성남", "기타"];
 const TRANSPORT_DATA = {
   "서울 강남": [
-    { method: "KTX / SRT", icon: "🚄", steps: ["수서역 SRT (강남 접근 최적)", "동대구역 하차 (1h 45m)", "동대구역에서 환승 → 라이온즈파크"], total: "약 2시간 30분", cost: "편도 약 42,000원", tip: "주말 경기 2주 전 예매 필수" },
+    { method: "KTX / SRT", icon: "🚄", steps: ["수서역 SRT (강남 접근 최적)", "동대구역 하차 (1h 45m)", "동대구역에서 환승 → 라이온즈파크"], total: "약 2시간 30분", cost: "편도 약 42,000원", tip: "한 달 전부터 미리 예매 추천" },
     { method: "고속버스", icon: "🚌", steps: ["서울경부 → 동대구 고속터미널 (2h 40m)", "동대구역으로 이동 후 환승"], total: "약 3시간 10분", cost: "편도 약 18,000원", tip: "가성비 최고. 귀경 막차 21:30 확인" },
   ],
   "서울 강북": [
@@ -654,7 +650,7 @@ function LionsRoadApp() {
           <span className="tip-label">수도권 팬 주의사항</span>
         </div>
         <div className="tip-text">
-          <b>주말 경기 KTX·SRT 좌석</b>은 2주 전부터 빠르게 매진됩니다.<br />
+          <b>주말 경기 KTX·SRT 좌석</b>은 한 달 전부터 미리 예매하시길 추천 드립니다.<br />
           귀경 <b>막차 시간</b>을 반드시 미리 확인하세요.<br />
           구장 주변 <b>주차는 경기 3시간 전</b>에 이미 혼잡합니다.
         </div>
