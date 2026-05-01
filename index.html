@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0057A8" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>Lions Road — 삼성 라이온즈 직관 가이드</title>
+
+  <!-- React + Babel CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: #e8edf2; }
+    #root { height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+
+/* ─── 좌표 ──────────────────────────────────────────────── */
+const LOCATIONS = {
+  dongdaegu: { name: "동대구역", lat: 35.8797, lng: 128.6285, emoji: "🚄" },
+  lionsPark: { name: "라이온즈파크", lat: 35.8409, lng: 128.6815, emoji: "🏟️" },
+  anjirang: { name: "안지랑 막창골목", lat: 35.8381, lng: 128.5758, emoji: "🍖" },
+  dongin: { name: "동인동 찜갈비골목", lat: 35.8708, lng: 128.6047, emoji: "🥘" },
+  seomun: { name: "서문시장", lat: 35.8689, lng: 128.5808, emoji: "🏪" },
+  suseongmot: { name: "수성못", lat: 35.8276, lng: 128.6177, emoji: "☕" },
+};
+
+const ROUTES_FROM_DONGDAEGU = [
+  { to: "lionsPark", label: "라이온즈파크",
+    methods: [
+      { type: "버스", icon: "🚌", duration: "25분", detail: "동대구역 1번 출구 → 순환3번 / 514번 → 라이온즈파크 정류장 하차", cost: "1,400원" },
+      { type: "지하철", icon: "🚇", duration: "30분", detail: "동대구역 1호선 → 명덕역 환승 → 2호선 수성구민운동장역 → 도보 10분", cost: "1,500원" },
+      { type: "택시", icon: "🚕", duration: "15분", detail: "동대구역 → 라이온즈파크 (약 7km, 직행)", cost: "약 9,000원" },
+    ],
+  },
+  { to: "anjirang", label: "안지랑 막창골목",
+    methods: [
+      { type: "지하철", icon: "🚇", duration: "30분", detail: "동대구역 1호선 → 안지랑역 하차 → 도보 5분", cost: "1,500원" },
+      { type: "택시", icon: "🚕", duration: "20분", detail: "약 7km", cost: "약 9,000원" },
+    ],
+  },
+  { to: "dongin", label: "동인동 찜갈비골목",
+    methods: [
+      { type: "지하철", icon: "🚇", duration: "20분", detail: "1호선 동대구역 → 중앙로역 → 도보 10분", cost: "1,500원" },
+      { type: "택시", icon: "🚕", duration: "10분", detail: "약 4km", cost: "약 6,000원" },
+    ],
+  },
+  { to: "seomun", label: "서문시장",
+    methods: [
+      { type: "버스 (직행)", icon: "🚌", duration: "20~25분", detail: "동대구역 정류장 → 급행1번 (도심 직행) → 서문시장 정류장 하차", cost: "1,400원" },
+      { type: "버스", icon: "🚌", duration: "30분", detail: "동대구역 → 급행3번 또는 402번 → 동산병원/서문시장 정류장 하차", cost: "1,400원" },
+      { type: "지하철", icon: "🚇", duration: "25분", detail: "1호선 동대구역 → 반월당역 → 2호선 환승 → 청라언덕역 → 3호선 환승 → 서문시장역", cost: "1,500원" },
+      { type: "택시", icon: "🚕", duration: "15분", detail: "약 6km", cost: "약 8,000원" },
+    ],
+  },
+];
+
+const ORIGINS = ["서울 강남", "서울 강북", "수원", "용인", "성남", "기타"];
+const TRANSPORT_DATA = {
+  "서울 강남": [
+    { method: "KTX / SRT", icon: "🚄", steps: ["수서역 SRT (강남 접근 최적)", "동대구역 하차 (1h 45m)", "동대구역에서 환승 → 라이온즈파크"], total: "약 2시간 30분", cost: "편도 약 42,000원", tip: "주말 경기 2주 전 예매 필수" },
+    { method: "고속버스", icon: "🚌", steps: ["서울경부 → 동대구 고속터미널 (2h 40m)", "동대구역으로 이동 후 환승"], total: "약 3시간 10분", cost: "편도 약 18,000원", tip: "가성비 최고. 귀경 막차 21:30 확인" },
+  ],
+  "서울 강북": [
+    { method: "KTX", icon: "🚄", steps: ["서울역 KTX", "동대구역 하차 (1h 40m)", "동대구역 환승"], total: "약 2시간 20분", cost: "편도 약 48,000원", tip: "서울역 당일 예매 가능 (주중)" },
+    { method: "고속버스", icon: "🚌", steps: ["동서울 → 동대구 고속터미널 (2h 50m)", "택시 이동"], total: "약 3시간 20분", cost: "편도 약 20,000원", tip: "동서울터미널 30분 여유 도착 추천" },
+  ],
+  "수원": [
+    { method: "KTX", icon: "🚄", steps: ["수원역 KTX", "동대구역 하차 (1h 15m)", "동대구역 환승"], total: "약 1시간 50분", cost: "편도 약 40,000원", tip: "수원역 배차 적으니 미리 확인" },
+    { method: "자가용", icon: "🚗", steps: ["경부고속도로 → 대구수성IC", "P1 주차장 (3시간 전 도착)"], total: "약 2시간", cost: "유류비 + 주차 약 5,000원", tip: "주말 귀경길 정체 주의" },
+  ],
+  "용인": [
+    { method: "SRT", icon: "🚄", steps: ["동탄역 SRT", "동대구역 하차 (1h)", "동대구역 환승"], total: "약 1시간 40분", cost: "편도 약 35,000원", tip: "동탄역 접근성 최고. 가장 추천" },
+    { method: "자가용", icon: "🚗", steps: ["영동고속도로 → 경부고속도로", "대구수성IC → P1 주차장"], total: "약 2시간", cost: "유류비 + 주차 약 5,000원", tip: "수성못 공영주차장 이용 후 도보 추천" },
+  ],
+  "성남": [
+    { method: "SRT", icon: "🚄", steps: ["수서역 SRT", "동대구역 하차 (1h 30m)", "동대구역 환승"], total: "약 2시간 10분", cost: "편도 약 40,000원", tip: "수서역까지 분당선 이용 편리" },
+    { method: "자가용", icon: "🚗", steps: ["경부고속도로 → 대구수성IC", "P1 주차장"], total: "약 2시간 10분", cost: "유류비 + 주차", tip: "경기 3시간 전 출발 추천" },
+  ],
+  "기타": [
+    { method: "KTX / SRT", icon: "🚄", steps: ["가까운 KTX·SRT 역 이용", "동대구역 하차", "동대구역 환승"], total: "출발지 따라 다름", cost: "코레일/SRT 앱 확인", tip: "www.letskorail.com 또는 SRT 앱" },
+  ],
+};
+
+const RESTAURANTS = [
+  { key: "seomun", name: "서문시장 야시장", cat: "전통시장·길거리", dist: "동대구역에서 25분", desc: "대구 대표 전통시장. 야시장은 금~일 저녁 7시~. 떡볶이, 호떡, 어묵, 큐브스테이크, 야끼소바 등 80여 종 길거리 음식.", price: "1인 5,000–15,000원", mood: "활기찬 야시장 체험", highlight: "🌟 야간 경기 후 추천" },
+  { key: "anjirang", name: "안지랑 막창골목", cat: "막창·곱창", dist: "동대구역에서 30분", desc: "대구 막창의 본고장. 50여 곳 막창집이 모인 골목 전체가 맛집.", price: "1인 15,000–20,000원", mood: "경기 전 든든하게", highlight: null },
+  { key: "dongin", name: "동인동 찜갈비 골목", cat: "찜갈비", dist: "동대구역에서 20분", desc: "대구 3대 음식. 매콤달콤한 갈비찜으로 유명한 동인동 골목 전체.", price: "1인 15,000원~", mood: "대구 필수 코스", highlight: "🌟 대구 3대 별미" },
+  { key: "suseongmot", name: "수성못 카페거리", cat: "카페·디저트", dist: "라이온즈파크 도보 15분", desc: "라이온즈파크 바로 옆 수성못 주변. 경기 전 여유 있게 커피 한 잔하기 좋은 분위기.", price: "아메리카노 4,500원~", mood: "여유롭게 경기 전", highlight: null },
+  { key: "park", name: "구장 내 치킨·컵밥", cat: "야구장 먹거리", dist: "구장 내부", desc: "치킨, 족발, 컵밥, 핫도그 등. 외부 음식 반입 가능 (캔·병류 제외).", price: "치킨 18,000원~", mood: "야구 보면서", highlight: null },
+];
+
+const PARK = {
+  seats: [
+    { zone: "1루 내야", desc: "삼성 공식 응원석. 열기가 가장 뜨거운 구역.", tag: "추천" },
+    { zone: "3루 내야", desc: "원정팀 응원석. 방문 팀 팬이라면 이쪽으로.", tag: "" },
+    { zone: "외야", desc: "입석 포함 저렴하게 즐기는 구역. 자유로운 분위기.", tag: "" },
+    { zone: "프리미엄 테이블석", desc: "좌석 앞 개인 테이블 제공. 편안한 관람 원할 때.", tag: "인기" },
+  ],
+  access: [
+    "지하철 2호선 수성구민운동장역 → 도보 10분 (가장 편리)",
+    "순환버스 101·349번 → 라이온즈파크 앞 정류장 하차",
+    "주차 P1·P2 — 경기 3시간 전 개방, 만차 시 수성못 공영주차장",
+    "입장 개문 경기 시작 1시간 30분 전",
+  ],
+  tips: [
+    "모바일 티켓 미리 저장해두기 (인터넷 끊겨도 확인 가능)",
+    "외부 음식 반입 가능 — 단, 캔·유리병 불가",
+    "우천 취소 시 티켓 자동 환불 처리",
+    "응원 도구 현장 구매 가능 (라이온즈 공식 굿즈 매장)",
+  ],
+};
+
+/* ─── 2026 KBO 정규시즌 (공식 일정표 기준) ─────────────
+   대구 컬럼에 삼성 = 홈 / 그 외 도시 컬럼 = 원정
+   venue: 잠실/고척/문학/수원/대전/대구/광주/사직/창원
+   ──────────────────────────────────────────────────────── */
+const GAMES_2026 = {
+  "5월": [
+    // 5.1~3 대구 한화-삼성 (홈)
+    { date: "5.01 금", time: "18:30", opp: "한화", type: "h", venue: "대구", note: "" },
+    { date: "5.02 토", time: "14:00", opp: "한화", type: "h", venue: "대구", note: "주말" },
+    { date: "5.03 일", time: "14:00", opp: "한화", type: "h", venue: "대구", note: "주말" },
+    // 5.5~7 대구 키움-삼성 (홈)
+    { date: "5.05 화", time: "14:00", opp: "키움", type: "h", venue: "대구", note: "어린이날" },
+    { date: "5.06 수", time: "18:30", opp: "키움", type: "h", venue: "대구", note: "" },
+    { date: "5.07 목", time: "18:30", opp: "키움", type: "h", venue: "대구", note: "" },
+    // 5.8~10 창원 삼성-NC (원정)
+    { date: "5.08 금", time: "18:30", opp: "NC", type: "a", venue: "창원", note: "" },
+    { date: "5.09 토", time: "14:00", opp: "NC", type: "a", venue: "창원", note: "" },
+    { date: "5.10 일", time: "14:00", opp: "NC", type: "a", venue: "창원", note: "" },
+    // 5.12~14 잠실 삼성-LG (원정)
+    { date: "5.12 화", time: "18:30", opp: "LG", type: "a", venue: "잠실", note: "" },
+    { date: "5.13 수", time: "18:30", opp: "LG", type: "a", venue: "잠실", note: "" },
+    { date: "5.14 목", time: "18:30", opp: "LG", type: "a", venue: "잠실", note: "" },
+    // 5.15~17 대구 KIA-삼성 (홈)
+    { date: "5.15 금", time: "18:30", opp: "KIA", type: "h", venue: "대구", note: "" },
+    { date: "5.16 토", time: "14:00", opp: "KIA", type: "h", venue: "대구", note: "주말" },
+    { date: "5.17 일", time: "14:00", opp: "KIA", type: "h", venue: "대구", note: "주말" },
+    // 5.19~21 대구 KT-삼성 (홈)
+    { date: "5.19 화", time: "18:30", opp: "KT", type: "h", venue: "대구", note: "" },
+    { date: "5.20 수", time: "18:30", opp: "KT", type: "h", venue: "대구", note: "" },
+    { date: "5.21 목", time: "18:30", opp: "KT", type: "h", venue: "대구", note: "" },
+    // 5.22~24 사직 삼성-롯데 (원정)
+    { date: "5.22 금", time: "18:30", opp: "롯데", type: "a", venue: "사직", note: "" },
+    { date: "5.23 토", time: "14:00", opp: "롯데", type: "a", venue: "사직", note: "" },
+    { date: "5.24 일", time: "14:00", opp: "롯데", type: "a", venue: "사직", note: "부처님오신날" },
+    // 5.26~28 문학 삼성-SSG (원정)
+    { date: "5.26 화", time: "18:30", opp: "SSG", type: "a", venue: "문학", note: "" },
+    { date: "5.27 수", time: "18:30", opp: "SSG", type: "a", venue: "문학", note: "" },
+    { date: "5.28 목", time: "18:30", opp: "SSG", type: "a", venue: "문학", note: "" },
+    // 5.29~31 대구 두산-삼성 (홈)
+    { date: "5.29 금", time: "18:30", opp: "두산", type: "h", venue: "대구", note: "" },
+    { date: "5.30 토", time: "14:00", opp: "두산", type: "h", venue: "대구", note: "주말" },
+    { date: "5.31 일", time: "14:00", opp: "두산", type: "h", venue: "대구", note: "주말" },
+  ],
+  "6월": [
+    // 6.2~4 대구 NC-삼성 (홈)
+    { date: "6.02 화", time: "18:30", opp: "NC", type: "h", venue: "대구", note: "" },
+    { date: "6.03 수", time: "18:30", opp: "NC", type: "h", venue: "대구", note: "지방선거" },
+    { date: "6.04 목", time: "18:30", opp: "NC", type: "h", venue: "대구", note: "" },
+    // 6.5~7 광주 삼성-KIA (원정)
+    { date: "6.05 금", time: "18:30", opp: "KIA", type: "a", venue: "광주", note: "" },
+    { date: "6.06 토", time: "14:00", opp: "KIA", type: "a", venue: "광주", note: "현충일" },
+    { date: "6.07 일", time: "14:00", opp: "KIA", type: "a", venue: "광주", note: "" },
+    // 6.9~11 수원 삼성-KT (원정)
+    { date: "6.09 화", time: "18:30", opp: "KT", type: "a", venue: "수원", note: "" },
+    { date: "6.10 수", time: "18:30", opp: "KT", type: "a", venue: "수원", note: "" },
+    { date: "6.11 목", time: "18:30", opp: "KT", type: "a", venue: "수원", note: "" },
+    // 6.12~14 대구 SSG-삼성 (홈)
+    { date: "6.12 금", time: "18:30", opp: "SSG", type: "h", venue: "대구", note: "" },
+    { date: "6.13 토", time: "14:00", opp: "SSG", type: "h", venue: "대구", note: "주말" },
+    { date: "6.14 일", time: "14:00", opp: "SSG", type: "h", venue: "대구", note: "주말" },
+    // 6.16~18 대구 키움-삼성 (홈)
+    { date: "6.16 화", time: "18:30", opp: "키움", type: "h", venue: "대구", note: "" },
+    { date: "6.17 수", time: "18:30", opp: "키움", type: "h", venue: "대구", note: "" },
+    { date: "6.18 목", time: "18:30", opp: "키움", type: "h", venue: "대구", note: "" },
+    // 6.19~21 대전 삼성-한화 (원정)
+    { date: "6.19 금", time: "18:30", opp: "한화", type: "a", venue: "대전", note: "" },
+    { date: "6.20 토", time: "14:00", opp: "한화", type: "a", venue: "대전", note: "" },
+    { date: "6.21 일", time: "14:00", opp: "한화", type: "a", venue: "대전", note: "" },
+    // 6.23~25 잠실 삼성-LG (원정)
+    { date: "6.23 화", time: "18:30", opp: "LG", type: "a", venue: "잠실", note: "" },
+    { date: "6.24 수", time: "18:30", opp: "LG", type: "a", venue: "잠실", note: "" },
+    { date: "6.25 목", time: "18:30", opp: "LG", type: "a", venue: "잠실", note: "" },
+    // 6.26~28 대구 KT-삼성 (홈)
+    { date: "6.26 금", time: "18:30", opp: "KT", type: "h", venue: "대구", note: "" },
+    { date: "6.27 토", time: "14:00", opp: "KT", type: "h", venue: "대구", note: "주말" },
+    { date: "6.28 일", time: "14:00", opp: "KT", type: "h", venue: "대구", note: "주말" },
+  ],
+  "7월": [
+    // 7.1~2 창원 삼성-NC (원정)
+    { date: "7.01 수", time: "18:30", opp: "NC", type: "a", venue: "창원", note: "" },
+    { date: "7.02 목", time: "18:30", opp: "NC", type: "a", venue: "창원", note: "" },
+    // 7.3~5 문학 삼성-SSG (원정)
+    { date: "7.03 금", time: "18:30", opp: "SSG", type: "a", venue: "문학", note: "" },
+    { date: "7.04 토", time: "14:00", opp: "SSG", type: "a", venue: "문학", note: "" },
+    { date: "7.05 일", time: "14:00", opp: "SSG", type: "a", venue: "문학", note: "" },
+    // 7.7~9 대구 LG-삼성 (홈)
+    { date: "7.07 화", time: "18:30", opp: "LG", type: "h", venue: "대구", note: "" },
+    { date: "7.08 수", time: "18:30", opp: "LG", type: "h", venue: "대구", note: "" },
+    { date: "7.09 목", time: "18:30", opp: "LG", type: "h", venue: "대구", note: "" },
+    // 7.10~15 올스타 브레이크
+    { date: "7.10~15", time: "—", opp: "올스타 브레이크", type: "b", venue: "—", note: "휴식기" },
+    // 7.16~19 대구 롯데-삼성 (홈) - 4연전
+    { date: "7.16 목", time: "18:30", opp: "롯데", type: "h", venue: "대구", note: "" },
+    { date: "7.17 금", time: "18:30", opp: "롯데", type: "h", venue: "대구", note: "제헌절" },
+    { date: "7.18 토", time: "14:00", opp: "롯데", type: "h", venue: "대구", note: "주말" },
+    { date: "7.19 일", time: "14:00", opp: "롯데", type: "h", venue: "대구", note: "주말" },
+    // 7.21~23 고척 삼성-키움 (원정)
+    { date: "7.21 화", time: "18:30", opp: "키움", type: "a", venue: "고척", note: "" },
+    { date: "7.22 수", time: "18:30", opp: "키움", type: "a", venue: "고척", note: "" },
+    { date: "7.23 목", time: "18:30", opp: "키움", type: "a", venue: "고척", note: "" },
+    // 7.24~26 잠실 삼성-두산 (원정)
+    { date: "7.24 금", time: "18:30", opp: "두산", type: "a", venue: "잠실", note: "" },
+    { date: "7.25 토", time: "14:00", opp: "두산", type: "a", venue: "잠실", note: "" },
+    { date: "7.26 일", time: "14:00", opp: "두산", type: "a", venue: "잠실", note: "" },
+    // 7.28~30 대구 KIA-삼성 (홈)
+    { date: "7.28 화", time: "18:30", opp: "KIA", type: "h", venue: "대구", note: "" },
+    { date: "7.29 수", time: "18:30", opp: "KIA", type: "h", venue: "대구", note: "" },
+    { date: "7.30 목", time: "18:30", opp: "KIA", type: "h", venue: "대구", note: "" },
+    // 7.31 사직 삼성-롯데 (원정)
+    { date: "7.31 금", time: "18:30", opp: "롯데", type: "a", venue: "사직", note: "" },
+  ],
+  "8월": [
+    // 8.1~2 사직 삼성-롯데 (원정 계속)
+    { date: "8.01 토", time: "14:00", opp: "롯데", type: "a", venue: "사직", note: "" },
+    { date: "8.02 일", time: "14:00", opp: "롯데", type: "a", venue: "사직", note: "" },
+    // 8.4~6 대구 한화-삼성 (홈)
+    { date: "8.04 화", time: "18:30", opp: "한화", type: "h", venue: "대구", note: "" },
+    { date: "8.05 수", time: "18:30", opp: "한화", type: "h", venue: "대구", note: "" },
+    { date: "8.06 목", time: "18:30", opp: "한화", type: "h", venue: "대구", note: "" },
+    // 8.7~9 대구 두산-삼성 (홈)
+    { date: "8.07 금", time: "18:30", opp: "두산", type: "h", venue: "대구", note: "" },
+    { date: "8.08 토", time: "14:00", opp: "두산", type: "h", venue: "대구", note: "주말" },
+    { date: "8.09 일", time: "14:00", opp: "두산", type: "h", venue: "대구", note: "주말" },
+    // 8.11~13 광주 삼성-KIA (원정)
+    { date: "8.11 화", time: "18:30", opp: "KIA", type: "a", venue: "광주", note: "" },
+    { date: "8.12 수", time: "18:30", opp: "KIA", type: "a", venue: "광주", note: "" },
+    { date: "8.13 목", time: "18:30", opp: "KIA", type: "a", venue: "광주", note: "" },
+    // 8.14~16 대구 한화-삼성 (홈)
+    { date: "8.14 금", time: "18:30", opp: "한화", type: "h", venue: "대구", note: "" },
+    { date: "8.15 토", time: "14:00", opp: "한화", type: "h", venue: "대구", note: "광복절" },
+    { date: "8.16 일", time: "14:00", opp: "한화", type: "h", venue: "대구", note: "주말" },
+    // 8.18~20 대구 SSG-삼성 (홈)
+    { date: "8.18 화", time: "18:30", opp: "SSG", type: "h", venue: "대구", note: "" },
+    { date: "8.19 수", time: "18:30", opp: "SSG", type: "h", venue: "대구", note: "" },
+    { date: "8.20 목", time: "18:30", opp: "SSG", type: "h", venue: "대구", note: "" },
+    // 8.21~23 창원 삼성-NC (원정)
+    { date: "8.21 금", time: "18:30", opp: "NC", type: "a", venue: "창원", note: "" },
+    { date: "8.22 토", time: "14:00", opp: "NC", type: "a", venue: "창원", note: "" },
+    { date: "8.23 일", time: "14:00", opp: "NC", type: "a", venue: "창원", note: "" },
+    // 8.25~27 고척 삼성-키움 (원정)
+    { date: "8.25 화", time: "18:30", opp: "키움", type: "a", venue: "고척", note: "" },
+    { date: "8.26 수", time: "18:30", opp: "키움", type: "a", venue: "고척", note: "" },
+    { date: "8.27 목", time: "18:30", opp: "키움", type: "a", venue: "고척", note: "" },
+    // 8.28~30 대구 KT-삼성 (홈)
+    { date: "8.28 금", time: "18:30", opp: "KT", type: "h", venue: "대구", note: "" },
+    { date: "8.29 토", time: "14:00", opp: "KT", type: "h", venue: "대구", note: "주말" },
+    { date: "8.30 일", time: "14:00", opp: "KT", type: "h", venue: "대구", note: "주말" },
+  ],
+  "9월": [
+    // 9.1~3 대구 롯데-삼성 (홈)
+    { date: "9.01 화", time: "18:30", opp: "롯데", type: "h", venue: "대구", note: "" },
+    { date: "9.02 수", time: "18:30", opp: "롯데", type: "h", venue: "대구", note: "" },
+    { date: "9.03 목", time: "18:30", opp: "롯데", type: "h", venue: "대구", note: "" },
+    // 9.4~6 잠실 삼성-LG (원정)
+    { date: "9.04 금", time: "18:30", opp: "LG", type: "a", venue: "잠실", note: "" },
+    { date: "9.05 토", time: "14:00", opp: "LG", type: "a", venue: "잠실", note: "" },
+    { date: "9.06 일", time: "14:00", opp: "LG", type: "a", venue: "잠실", note: "" },
+  ],
+};
+const ALL_MONTHS = Object.keys(GAMES_2026);
+
+/* 시즌 합계 */
+const TOTALS = (() => {
+  let h = 0, a = 0;
+  Object.values(GAMES_2026).flat().forEach(g => {
+    if (g.type === "h") h++;
+    else if (g.type === "a") a++;
+  });
+  return { home: h, away: a, total: h + a };
+})();
+
+function getNextGame() {
+  const now = new Date();
+  const year = 2026;
+  for (const [month, games] of Object.entries(GAMES_2026)) {
+    const monthNum = parseInt(month);
+    for (const g of games) {
+      if (g.type === "b") continue;
+      const day = parseInt(g.date.split(" ")[0].split(".")[1]);
+      const [hh, mm] = g.time.split(":").map(Number);
+      const gameDate = new Date(year, monthNum - 1, day, hh, mm);
+      if (gameDate >= now) return { month, game: g, dateObj: gameDate };
+    }
+  }
+  return { month: "5월", game: GAMES_2026["5월"][0], dateObj: new Date(2026, 4, 1, 18, 30) };
+}
+
+function getNextHomeGame() {
+  const now = new Date();
+  const year = 2026;
+  for (const [month, games] of Object.entries(GAMES_2026)) {
+    const monthNum = parseInt(month);
+    for (const g of games) {
+      if (g.type !== "h") continue;
+      const day = parseInt(g.date.split(" ")[0].split(".")[1]);
+      const [hh, mm] = g.time.split(":").map(Number);
+      const gameDate = new Date(year, monthNum - 1, day, hh, mm);
+      if (gameDate >= now) return { month, game: g, dateObj: gameDate };
+    }
+  }
+  return null;
+}
+
+function daysUntil(targetDate) {
+  return Math.floor((targetDate - new Date()) / (1000 * 60 * 60 * 24));
+}
+
+function MiniMap({ highlightTo = null }) {
+  const minLng = 128.570, maxLng = 128.690;
+  const minLat = 35.820, maxLat = 35.890;
+  const W = 380, H = 280, PAD = 30;
+  const proj = (lat, lng) => {
+    const x = PAD + ((lng - minLng) / (maxLng - minLng)) * (W - 2 * PAD);
+    const y = PAD + ((maxLat - lat) / (maxLat - minLat)) * (H - 2 * PAD);
+    return [x, y];
+  };
+  const points = Object.entries(LOCATIONS).map(([key, loc]) => ({ key, ...loc, pos: proj(loc.lat, loc.lng) }));
+  const dongdaegu = points.find(p => p.key === "dongdaegu");
+  const otherPoints = points.filter(p => p.key !== "dongdaegu");
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="map-svg">
+      <defs>
+        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+          <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#f0f4f8" strokeWidth="1" />
+        </pattern>
+      </defs>
+      <rect width={W} height={H} fill="#fafbfd" />
+      <rect width={W} height={H} fill="url(#grid)" />
+      <path d={`M ${PAD-10} ${H/2 + 30} Q ${W/3} ${H/2 + 50} ${W/2} ${H/2 + 20} T ${W} ${H/2 + 10}`} stroke="#dde7f0" strokeWidth="14" fill="none" opacity="0.5" />
+      {otherPoints.map(p => {
+        const isHL = highlightTo === p.key;
+        return <line key={p.key} x1={dongdaegu.pos[0]} y1={dongdaegu.pos[1]} x2={p.pos[0]} y2={p.pos[1]} stroke={isHL ? "#0057A8" : "#cfd8e3"} strokeWidth={isHL ? "2.5" : "1.2"} strokeDasharray={isHL ? "0" : "4 3"} />;
+      })}
+      {otherPoints.map(p => {
+        const isHL = highlightTo === p.key;
+        const isPark = p.key === "lionsPark";
+        return (
+          <g key={p.key}>
+            <circle cx={p.pos[0]} cy={p.pos[1]} r={isPark ? 11 : 8} fill={isPark ? "#0057A8" : isHL ? "#0057A8" : "white"} stroke={isPark || isHL ? "#0057A8" : "#7a8b9c"} strokeWidth="2" />
+            <text x={p.pos[0]} y={p.pos[1] + 1} textAnchor="middle" dominantBaseline="middle" fontSize={isPark ? "11" : "10"}>{p.emoji}</text>
+            <text x={p.pos[0]} y={p.pos[1] + (isPark ? 24 : 21)} textAnchor="middle" fontSize="9.5" fontWeight={isPark || isHL ? "700" : "500"} fill={isPark || isHL ? "#0057A8" : "#555"}>{p.name}</text>
+          </g>
+        );
+      })}
+      <g>
+        <circle cx={dongdaegu.pos[0]} cy={dongdaegu.pos[1]} r="14" fill="#111" />
+        <text x={dongdaegu.pos[0]} y={dongdaegu.pos[1] + 1} textAnchor="middle" dominantBaseline="middle" fontSize="13">🚄</text>
+        <text x={dongdaegu.pos[0]} y={dongdaegu.pos[1] - 22} textAnchor="middle" fontSize="10.5" fontWeight="700" fill="#111">동대구역</text>
+      </g>
+      <g transform={`translate(${W - 35}, 28)`}>
+        <circle r="12" fill="white" stroke="#dde2e8" strokeWidth="1" />
+        <text textAnchor="middle" dominantBaseline="middle" fontSize="9" fontWeight="700" fill="#0057A8">N</text>
+      </g>
+    </svg>
+  );
+}
+
+const css = `
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&display=swap');
+:root {
+  --blue: #0057A8;
+  --blue-dark: #003f80;
+  --blue-light: #EEF4FC;
+  --blue-mid: #b3cfe8;
+  --away: #f59e0b;
+  --away-light: #FEF3DA;
+  --break: #9ca3af;
+  --break-light: #f3f4f6;
+  --ink: #111111;
+  --ink2: #555555;
+  --ink3: #999999;
+  --line: #e8e8e8;
+  --bg: #f7f9fb;
+  --white: #ffffff;
+  --radius: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { background: #e8edf2; }
+.app { max-width: 430px; margin: 0 auto; min-height: 100vh; background: var(--bg); font-family: 'Noto Sans KR', sans-serif; color: var(--ink); position: relative; }
+
+.header { background: var(--white); padding: 18px 20px 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+.hd-left { display: flex; align-items: center; gap: 10px; }
+.hd-dot { width: 8px; height: 8px; background: var(--blue); border-radius: 50%; animation: blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.35} }
+.hd-title { font-family: 'DM Serif Display', serif; font-size: 18px; letter-spacing: -0.3px; }
+.hd-sub { font-size: 11px; color: var(--ink3); margin-top: 1px; }
+.hd-badge { font-size: 11px; font-weight: 700; color: var(--blue); background: var(--blue-light); border: 1px solid var(--blue-mid); padding: 3px 10px; border-radius: 20px; }
+
+.nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: var(--white); border-top: 1px solid var(--line); display: flex; padding: 10px 0 24px; z-index: 10; }
+.nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 4px 0; }
+.nav-dot { font-size: 16px; transition: transform 0.15s; }
+.nav-item.active .nav-dot { transform: scale(1.15); }
+.nav-lbl { font-size: 10px; color: var(--ink3); font-weight: 500; }
+.nav-item.active .nav-lbl { color: var(--blue); font-weight: 700; }
+
+.content { padding: 20px 20px 100px; }
+.sec-title { font-family: 'DM Serif Display', serif; font-size: 22px; letter-spacing: -0.5px; margin-bottom: 4px; }
+.sec-sub { font-size: 12px; color: var(--ink3); margin-bottom: 20px; }
+.divider { height: 1px; background: var(--line); margin: 20px 0; }
+
+.next-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; position: relative; overflow: hidden; }
+.next-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.next-label { font-size: 10px; font-weight: 700; color: var(--blue); letter-spacing: 2px; }
+.dday-pill { font-size: 10px; font-weight: 700; background: var(--blue); color: white; padding: 4px 9px; border-radius: 20px; }
+.dday-pill.today { background: #FF3B30; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{transform: scale(1)} 50%{transform: scale(1.05)} }
+.matchup-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.team { text-align: center; }
+.team-logo { font-size: 36px; }
+.team-nm { font-weight: 700; font-size: 15px; margin-top: 4px; }
+.vs-col { text-align: center; }
+.vs-text { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--line); line-height: 1; }
+.vs-venue { font-size: 10px; color: var(--ink3); margin-top: 4px; }
+.game-meta-row { display: flex; align-items: center; justify-content: space-between; background: var(--bg); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; }
+.gm-item { text-align: center; }
+.gm-val { font-size: 14px; font-weight: 700; }
+.gm-key { font-size: 10px; color: var(--ink3); margin-top: 2px; }
+.gm-sep { width: 1px; height: 28px; background: var(--line); }
+.action-btn { width: 100%; background: var(--blue); color: white; border: none; border-radius: 10px; padding: 13px; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; }
+.action-btn:active { background: var(--blue-dark); }
+.shortcuts-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+.sc-item { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 8px 12px; text-align: center; cursor: pointer; }
+.sc-item:active { background: var(--blue-light); border-color: var(--blue-mid); }
+.sc-icon { font-size: 22px; margin-bottom: 6px; }
+.sc-name { font-size: 11px; color: var(--ink2); font-weight: 500; }
+.tip-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+.tip-header { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.tip-label { font-size: 11px; font-weight: 700; color: var(--ink2); letter-spacing: 0.5px; }
+.tip-text { font-size: 13px; color: var(--ink2); line-height: 1.8; }
+.tip-text b { color: var(--ink); font-weight: 700; }
+
+.origin-bar, .month-bar, .route-tab-bar, .filter-bar {
+  display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px; scrollbar-width: none;
+}
+.origin-bar::-webkit-scrollbar, .month-bar::-webkit-scrollbar, .route-tab-bar::-webkit-scrollbar, .filter-bar::-webkit-scrollbar { display: none; }
+.origin-chip, .month-chip, .route-chip, .filter-chip {
+  flex-shrink: 0; font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: 20px;
+  border: 1.5px solid var(--line); background: var(--white); color: var(--ink2); cursor: pointer; white-space: nowrap;
+}
+.origin-chip.sel, .month-chip.sel, .route-chip.sel, .filter-chip.sel { background: var(--blue); border-color: var(--blue); color: white; }
+
+.t-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 12px; }
+.t-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.t-method { display: flex; align-items: center; gap: 8px; }
+.t-icon-box { width: 36px; height: 36px; background: var(--bg); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.t-name { font-weight: 700; font-size: 15px; }
+.t-total { font-size: 12px; font-weight: 700; background: var(--bg); padding: 4px 10px; border-radius: 20px; }
+.t-steps { border-left: 2px solid var(--line); margin-left: 6px; padding-left: 14px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; }
+.t-step { font-size: 13px; color: var(--ink2); line-height: 1.5; position: relative; }
+.t-step::before { content: ''; width: 7px; height: 7px; background: var(--white); border: 2px solid var(--line); border-radius: 50%; position: absolute; left: -19px; top: 5px; }
+.t-bottom { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 12px; }
+.t-cost { font-size: 12px; color: var(--ink2); }
+.t-tip-pill { font-size: 11px; color: var(--blue); background: var(--blue-light); padding: 3px 10px; border-radius: 20px; font-weight: 500; max-width: 55%; text-align: right; line-height: 1.5; }
+
+.map-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-bottom: 16px; }
+.map-card-title { font-size: 11px; font-weight: 700; color: var(--ink3); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; }
+.map-svg { width: 100%; height: auto; display: block; border-radius: 10px; }
+.map-legend { display: flex; gap: 14px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); justify-content: center; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--ink2); }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+.dd-section-header { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+.dd-hub-icon { width: 38px; height: 38px; background: var(--ink); color: white; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.dd-hub-info { flex: 1; }
+.dd-hub-name { font-weight: 700; font-size: 14px; }
+.dd-hub-desc { font-size: 11px; color: var(--ink3); margin-top: 2px; }
+.dd-route-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+.dd-route-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px dashed var(--line); }
+.dd-route-from-to { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink2); }
+.dd-route-arrow { color: var(--blue); font-weight: 700; }
+.dd-route-target { font-weight: 700; font-size: 14px; color: var(--ink); }
+.dd-method { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; }
+.dd-method + .dd-method { border-top: 1px solid var(--line); }
+.dd-mt-icon { font-size: 22px; flex-shrink: 0; width: 28px; text-align: center; }
+.dd-mt-body { flex: 1; min-width: 0; }
+.dd-mt-row1 { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.dd-mt-type { font-weight: 700; font-size: 13px; }
+.dd-mt-time { font-size: 11px; font-weight: 700; color: var(--blue); background: var(--blue-light); padding: 2px 8px; border-radius: 20px; }
+.dd-mt-detail { font-size: 12px; color: var(--ink2); line-height: 1.6; margin-bottom: 4px; }
+.dd-mt-cost { font-size: 11px; color: var(--ink3); }
+
+.r-card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 12px; position: relative; }
+.r-card.featured { border-color: var(--blue-mid); background: linear-gradient(180deg, var(--blue-light) 0%, var(--white) 30%); }
+.r-highlight { position: absolute; top: -8px; left: 14px; background: var(--blue); color: white; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+.r-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
+.r-name { font-weight: 700; font-size: 16px; }
+.r-dist { font-size: 11px; color: var(--ink3); margin-top: 2px; }
+.r-cat { font-size: 11px; font-weight: 700; background: var(--bg); border: 1px solid var(--line); padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+.r-desc { font-size: 13px; color: var(--ink2); line-height: 1.7; margin-bottom: 10px; }
+.r-bottom { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 10px; }
+.r-mood { font-size: 11px; color: var(--ink3); }
+.r-price { font-size: 12px; font-weight: 700; color: var(--ink2); }
+
+.park-hero { background: var(--blue); border-radius: var(--radius); padding: 22px; margin-bottom: 20px; color: white; display: flex; gap: 14px; align-items: center; }
+.park-hero-emoji { font-size: 44px; }
+.park-hero-name { font-family: 'DM Serif Display', serif; font-size: 17px; margin-bottom: 4px; line-height: 1.3; }
+.park-hero-addr { font-size: 12px; color: rgba(255,255,255,0.6); line-height: 1.6; }
+.park-section { margin-bottom: 20px; }
+.park-section-title { font-size: 11px; font-weight: 700; color: var(--ink3); letter-spacing: 2px; margin-bottom: 10px; }
+.seat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.seat-card { background: var(--white); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.seat-zone { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+.seat-desc { font-size: 12px; color: var(--ink2); line-height: 1.5; }
+.seat-tag { display: inline-block; font-size: 10px; font-weight: 700; color: var(--blue); background: var(--blue-light); padding: 2px 7px; border-radius: 20px; margin-top: 6px; }
+.access-list { display: flex; flex-direction: column; gap: 10px; }
+.access-item { background: var(--white); border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; font-size: 13px; color: var(--ink2); line-height: 1.6; display: flex; align-items: flex-start; gap: 10px; }
+.access-num { width: 20px; height: 20px; background: var(--ink); color: white; border-radius: 50%; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.tips-list { display: flex; flex-direction: column; gap: 8px; }
+.tip-item { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--ink2); line-height: 1.6; }
+.tip-bullet { color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+.summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.summary-cell { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; text-align: center; }
+.summary-cell.home { border-color: var(--blue-mid); background: var(--blue-light); }
+.summary-cell.away { border-color: #f5d8a0; background: var(--away-light); }
+.summary-num { font-family: 'DM Serif Display', serif; font-size: 24px; line-height: 1.1; }
+.summary-num.home { color: var(--blue); }
+.summary-num.away { color: var(--away); }
+.summary-num.total { color: var(--ink); }
+.summary-lbl { font-size: 10px; color: var(--ink2); margin-top: 4px; font-weight: 500; }
+
+.season-totals {
+  background: var(--white); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.st-icon { font-size: 22px; }
+.st-text { font-size: 12px; color: var(--ink2); flex: 1; line-height: 1.5; }
+.st-text b { color: var(--blue); }
+
+.g-row { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 14px; position: relative; }
+.g-row.home { border-left: 3px solid var(--blue); }
+.g-row.away { border-left: 3px solid var(--away); }
+.g-row.break { border-left: 3px solid var(--break); background: var(--break-light); justify-content: center; }
+.g-row.break .g-break-text { font-weight: 700; color: var(--ink2); }
+.g-row.next { box-shadow: 0 0 0 2px var(--blue); }
+.g-date { min-width: 60px; }
+.g-date-val { font-weight: 700; font-size: 14px; }
+.g-time { font-size: 11px; color: var(--ink3); margin-top: 2px; }
+.g-sep { width: 1px; height: 32px; background: var(--line); }
+.g-opp { flex: 1; }
+.g-vs { font-size: 10px; color: var(--ink3); margin-bottom: 2px; }
+.g-opp-name { font-weight: 700; font-size: 15px; }
+.g-venue { font-size: 10px; color: var(--ink3); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+.g-tags { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+.g-tag { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+.tag-home { background: var(--blue-light); color: var(--blue); }
+.tag-away { background: var(--away-light); color: var(--away); }
+.tag-wknd { background: #f0f0f0; color: var(--ink3); }
+.tag-special { background: #FFF3CD; color: #856404; }
+.tag-next { background: var(--blue); color: white; }
+
+.schedule-note { text-align: center; font-size: 12px; color: var(--ink3); margin-top: 10px; padding: 12px; line-height: 1.7; }
+`;
+
+function LionsRoadApp() {
+  const [tab, setTab] = useState(0);
+  const [origin, setOrigin] = useState("서울 강남");
+  const [routeTarget, setRouteTarget] = useState("lionsPark");
+  const [selectedMonth, setSelectedMonth] = useState(() => getNextGame().month);
+  const [filter, setFilter] = useState("all"); // all | home | away
+
+  const NAV = [
+    { icon: "🏟️", label: "홈" },
+    { icon: "🚄", label: "교통" },
+    { icon: "🍖", label: "맛집" },
+    { icon: "📋", label: "구장" },
+    { icon: "📅", label: "일정" },
+  ];
+
+  const next = getNextHomeGame() || getNextGame();
+  const dDay = daysUntil(next.dateObj);
+  const dDayLabel = dDay === 0 ? "TODAY" : dDay > 0 ? `D-${dDay}` : "진행중";
+
+  const HomeTab = () => (
+    <div>
+      <div className="next-card">
+        <div className="next-label-row">
+          <span className="next-label">▶ NEXT HOME GAME</span>
+          <span className={`dday-pill ${dDay === 0 ? "today" : ""}`}>{dDayLabel}</span>
+        </div>
+        <div className="matchup-row">
+          <div className="team">
+            <div className="team-logo">🦁</div>
+            <div className="team-nm">삼성</div>
+          </div>
+          <div className="vs-col">
+            <div className="vs-text">VS</div>
+            <div className="vs-venue">라이온즈파크</div>
+          </div>
+          <div className="team">
+            <div className="team-logo">⚾</div>
+            <div className="team-nm">{next.game.opp}</div>
+          </div>
+        </div>
+        <div className="game-meta-row">
+          <div className="gm-item">
+            <div className="gm-val">{next.game.date.split(" ")[0]}</div>
+            <div className="gm-key">{next.month}</div>
+          </div>
+          <div className="gm-sep" />
+          <div className="gm-item">
+            <div className="gm-val">{next.game.date.split(" ")[1]}</div>
+            <div className="gm-key">요일</div>
+          </div>
+          <div className="gm-sep" />
+          <div className="gm-item">
+            <div className="gm-val">{next.game.time}</div>
+            <div className="gm-key">시작</div>
+          </div>
+        </div>
+        <button className="action-btn" onClick={() => setTab(1)}>출발지 선택하고 경로 보기 →</button>
+      </div>
+      <div className="shortcuts-grid">
+        {[
+          { icon: "🚄", name: "교통편", t: 1 },
+          { icon: "🍖", name: "맛집", t: 2 },
+          { icon: "🪑", name: "구장 정보", t: 3 },
+          { icon: "📅", name: "경기 일정", t: 4 },
+        ].map((s) => (
+          <div key={s.t} className="sc-item" onClick={() => setTab(s.t)}>
+            <div className="sc-icon">{s.icon}</div>
+            <div className="sc-name">{s.name}</div>
+          </div>
+        ))}
+      </div>
+      <div className="tip-card">
+        <div className="tip-header">
+          <span style={{ fontSize: 14 }}>💡</span>
+          <span className="tip-label">수도권 팬 주의사항</span>
+        </div>
+        <div className="tip-text">
+          <b>주말 경기 KTX·SRT 좌석</b>은 2주 전부터 빠르게 매진됩니다.<br />
+          귀경 <b>막차 시간</b>을 반드시 미리 확인하세요.<br />
+          구장 주변 <b>주차는 경기 3시간 전</b>에 이미 혼잡합니다.
+        </div>
+      </div>
+    </div>
+  );
+
+  const TransportTab = () => {
+    const routes = TRANSPORT_DATA[origin] || [];
+    const ddRoute = ROUTES_FROM_DONGDAEGU.find(r => r.to === routeTarget);
+    return (
+      <div>
+        <div className="sec-title">교통편 안내</div>
+        <div className="sec-sub">출발지 → 동대구역 → 목적지 환승 가이드</div>
+        <div className="map-card">
+          <div className="map-card-title">📍 대구 주요 지점 지도</div>
+          <MiniMap highlightTo={routeTarget} />
+          <div className="map-legend">
+            <div className="legend-item"><div className="legend-dot" style={{background:"#111"}} /> 동대구역</div>
+            <div className="legend-item"><div className="legend-dot" style={{background:"#0057A8"}} /> 라이온즈파크</div>
+            <div className="legend-item"><div className="legend-dot" style={{background:"white", border:"2px solid #7a8b9c"}} /> 맛집·관광</div>
+          </div>
+        </div>
+        <div className="dd-section-header">
+          <div className="dd-hub-icon">1</div>
+          <div className="dd-hub-info">
+            <div className="dd-hub-name">수도권 → 동대구역</div>
+            <div className="dd-hub-desc">출발지를 선택하세요</div>
+          </div>
+        </div>
+        <div className="origin-bar">
+          {ORIGINS.map((o) => (
+            <div key={o} className={`origin-chip ${origin === o ? "sel" : ""}`} onClick={() => setOrigin(o)}>{o}</div>
+          ))}
+        </div>
+        {routes.map((r, i) => (
+          <div key={i} className="t-card">
+            <div className="t-top">
+              <div className="t-method">
+                <div className="t-icon-box">{r.icon}</div>
+                <span className="t-name">{r.method}</span>
+              </div>
+              <div className="t-total">⏱ {r.total}</div>
+            </div>
+            <div className="t-steps">
+              {r.steps.map((s, j) => <div key={j} className="t-step">{s}</div>)}
+            </div>
+            <div className="t-bottom">
+              <div className="t-cost">💳 {r.cost}</div>
+              <div className="t-tip-pill">✔ {r.tip}</div>
+            </div>
+          </div>
+        ))}
+        <div className="divider" />
+        <div className="dd-section-header">
+          <div className="dd-hub-icon">2</div>
+          <div className="dd-hub-info">
+            <div className="dd-hub-name">동대구역 → 목적지</div>
+            <div className="dd-hub-desc">어디로 가시나요?</div>
+          </div>
+        </div>
+        <div className="route-tab-bar">
+          {ROUTES_FROM_DONGDAEGU.map((r) => (
+            <div key={r.to} className={`route-chip ${routeTarget === r.to ? "sel" : ""}`} onClick={() => setRouteTarget(r.to)}>
+              {LOCATIONS[r.to].emoji} {r.label}
+            </div>
+          ))}
+        </div>
+        <div className="dd-route-card">
+          <div className="dd-route-head">
+            <div className="dd-route-from-to">
+              <span>🚄 동대구역</span>
+              <span className="dd-route-arrow">→</span>
+              <span className="dd-route-target">{LOCATIONS[ddRoute.to].emoji} {ddRoute.label}</span>
+            </div>
+          </div>
+          {ddRoute.methods.map((m, i) => (
+            <div key={i} className="dd-method">
+              <div className="dd-mt-icon">{m.icon}</div>
+              <div className="dd-mt-body">
+                <div className="dd-mt-row1">
+                  <span className="dd-mt-type">{m.type}</span>
+                  <span className="dd-mt-time">⏱ {m.duration}</span>
+                </div>
+                <div className="dd-mt-detail">{m.detail}</div>
+                <div className="dd-mt-cost">💳 {m.cost}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const FoodTab = () => (
+    <div>
+      <div className="sec-title">맛집 & 먹거리</div>
+      <div className="sec-sub">동대구역 도착 후 들르기 좋은 곳</div>
+      <div className="map-card">
+        <div className="map-card-title">🗺 맛집 위치 한눈에 보기</div>
+        <MiniMap />
+      </div>
+      {RESTAURANTS.map((r, i) => (
+        <div key={i} className={`r-card ${r.highlight ? "featured" : ""}`}>
+          {r.highlight && <div className="r-highlight">{r.highlight}</div>}
+          <div className="r-top">
+            <div>
+              <div className="r-name">{r.name}</div>
+              <div className="r-dist">{r.dist}</div>
+            </div>
+            <div className="r-cat">{r.cat}</div>
+          </div>
+          <div className="r-desc">{r.desc}</div>
+          <div className="r-bottom">
+            <div className="r-mood">#{r.mood}</div>
+            <div className="r-price">{r.price}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const ParkTab = () => (
+    <div>
+      <div className="park-hero">
+        <div className="park-hero-emoji">🏟️</div>
+        <div>
+          <div className="park-hero-name">대구삼성<br />라이온즈파크</div>
+          <div className="park-hero-addr">대구 수성구 야구전설로 1<br />수용 인원 약 29,000명</div>
+        </div>
+      </div>
+      <div className="park-section">
+        <div className="park-section-title">좌석 구성</div>
+        <div className="seat-grid">
+          {PARK.seats.map((s, i) => (
+            <div key={i} className="seat-card">
+              <div className="seat-zone">{s.zone}</div>
+              <div className="seat-desc">{s.desc}</div>
+              {s.tag && <div className="seat-tag">{s.tag}</div>}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="divider" />
+      <div className="park-section">
+        <div className="park-section-title">오시는 길 & 주차</div>
+        <div className="access-list">
+          {PARK.access.map((a, i) => (
+            <div key={i} className="access-item">
+              <div className="access-num">{i + 1}</div>
+              <span>{a}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="divider" />
+      <div className="park-section">
+        <div className="park-section-title">꼭 알아두세요</div>
+        <div className="tips-list">
+          {PARK.tips.map((t, i) => (
+            <div key={i} className="tip-item">
+              <span className="tip-bullet">—</span>
+              <span>{t}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const ScheduleTab = () => {
+    const games = GAMES_2026[selectedMonth] || [];
+    const homeCount = games.filter(g => g.type === "h").length;
+    const awayCount = games.filter(g => g.type === "a").length;
+    const filteredGames = games.filter(g => {
+      if (filter === "home") return g.type === "h";
+      if (filter === "away") return g.type === "a";
+      return true; // all = 홈+원정+브레이크
+    });
+    const isNextGame = (g) => selectedMonth === next.month && g.date === next.game.date;
+
+    return (
+      <div>
+        <div className="sec-title">2026 KBO 시즌</div>
+        <div className="sec-sub">삼성 라이온즈 · 공식 일정 기준</div>
+
+        {/* 시즌 합계 */}
+        <div className="season-totals">
+          <div className="st-icon">⚾</div>
+          <div className="st-text">
+            2026 정규시즌 총 <b>144경기</b><br />
+            <span style={{ fontSize: 11, color: "var(--ink3)" }}>
+              앱 등록 5~9월 일정 — 홈 <b>{TOTALS.home}</b> / 원정 <b>{TOTALS.away}</b> ({TOTALS.total}경기)
+            </span>
+          </div>
+        </div>
+
+        <div className="month-bar">
+          {ALL_MONTHS.map((m) => (
+            <div key={m} className={`month-chip ${selectedMonth === m ? "sel" : ""}`} onClick={() => setSelectedMonth(m)}>{m}</div>
+          ))}
+        </div>
+
+        <div className="summary-grid">
+          <div className="summary-cell">
+            <div className="summary-num total">{homeCount + awayCount}</div>
+            <div className="summary-lbl">{selectedMonth} 경기</div>
+          </div>
+          <div className="summary-cell home">
+            <div className="summary-num home">{homeCount}</div>
+            <div className="summary-lbl">🏟️ 홈경기</div>
+          </div>
+          <div className="summary-cell away">
+            <div className="summary-num away">{awayCount}</div>
+            <div className="summary-lbl">🚌 원정</div>
+          </div>
+        </div>
+
+        <div className="filter-bar">
+          {[
+            { k: "all", l: "전체" },
+            { k: "home", l: "🏟️ 홈만" },
+            { k: "away", l: "🚌 원정만" },
+          ].map(f => (
+            <div key={f.k} className={`filter-chip ${filter === f.k ? "sel" : ""}`} onClick={() => setFilter(f.k)}>{f.l}</div>
+          ))}
+        </div>
+
+        {filteredGames.map((g, i) => {
+          if (g.type === "b") {
+            return (
+              <div key={i} className="g-row break">
+                <span className="g-break-text">⭐ {g.opp} ({g.date})</span>
+              </div>
+            );
+          }
+          const isHome = g.type === "h";
+          const isAway = g.type === "a";
+          const isSpecial = g.note && g.note !== "주말" && g.note !== "";
+          const isNext = isNextGame(g);
+          return (
+            <div key={i} className={`g-row ${isHome ? "home" : "away"} ${isNext ? "next" : ""}`}>
+              <div className="g-date">
+                <div className="g-date-val">{g.date.split(" ")[0]}</div>
+                <div className="g-time">{g.time}</div>
+              </div>
+              <div className="g-sep" />
+              <div className="g-opp">
+                <div className="g-vs">{isHome ? "vs (홈)" : "@ (원정)"}</div>
+                <div className="g-opp-name">{g.opp}</div>
+                <div className="g-venue">📍 {g.venue}</div>
+              </div>
+              <div className="g-tags">
+                {isNext && <div className="g-tag tag-next">NEXT</div>}
+                <div className={`g-tag ${isHome ? "tag-home" : "tag-away"}`}>{isHome ? "홈" : "원정"}</div>
+                {isSpecial && <div className="g-tag tag-special">{g.note}</div>}
+              </div>
+            </div>
+          );
+        })}
+
+        <div className="schedule-note">
+          전체 정규시즌 144경기 중 5~9월 일정 표시<br />
+          홈경기는 모두 대구 라이온즈파크 개최<br />
+          원정 경기장: 잠실(LG/두산), 고척(키움), 문학(SSG),<br />
+          수원(KT), 대전(한화), 광주(KIA), 사직(롯데), 창원(NC)
+        </div>
+      </div>
+    );
+  };
+
+  const PAGES = [HomeTab, TransportTab, FoodTab, ParkTab, ScheduleTab];
+  const Page = PAGES[tab];
+
+  return (
+    <>
+      <style>{css}</style>
+      <div className="app">
+        <div className="header">
+          <div className="hd-left">
+            <div className="hd-dot" />
+            <div>
+              <div className="hd-title">Lions Road</div>
+              <div className="hd-sub">수도권 팬 직관 가이드 2026</div>
+            </div>
+          </div>
+          <div className="hd-badge">🦁 삼성 라이온즈</div>
+        </div>
+        <div className="content">
+          <Page />
+        </div>
+        <div className="nav">
+          {NAV.map((n, i) => (
+            <div key={i} className={`nav-item ${tab === i ? "active" : ""}`} onClick={() => setTab(i)}>
+              <div className="nav-dot">{n.icon}</div>
+              <div className="nav-lbl">{n.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<LionsRoadApp />);
+  </script>
+</body>
+</html>
