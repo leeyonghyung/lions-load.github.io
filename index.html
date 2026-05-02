@@ -98,23 +98,36 @@ const RESTAURANTS = [
 ];
 
 const PARK = {
+  info: {
+    address: "대구광역시 수성구 야구전설로 1 (연호동)",
+    capacity: "24,000석 / 최대 29,000명 수용 (KBO 최대)",
+    dugout: "삼성 3루 덕아웃 사용 (KBO에서 라팍·광주만 3루 홈)",
+    shape: "국내 최초 팔각형 구조, 어느 좌석에서나 마운드 정면 시야",
+  },
   seats: [
-    { zone: "1루 내야", desc: "삼성 공식 응원석. 열기가 가장 뜨거운 구역.", tag: "추천" },
-    { zone: "3루 내야", desc: "원정팀 응원석. 방문 팀 팬이라면 이쪽으로.", tag: "" },
-    { zone: "외야", desc: "입석 포함 저렴하게 즐기는 구역. 자유로운 분위기.", tag: "" },
-    { zone: "프리미엄 테이블석", desc: "좌석 앞 개인 테이블 제공. 편안한 관람 원할 때.", tag: "인기" },
+    { zone: "3루 블루존", desc: "삼성 공식 홈 응원석. 7구역 운영. 치어리더·응원단장이 앞에서 공연. 3·4구역이 가장 인기.", tag: "추천" },
+    { zone: "1루 내야", desc: "원정팀 응원석. 주말 낮 경기엔 햇빛이 강하게 내리쬐므로 볼캡·선크림 필수.", tag: "원정석" },
+    { zone: "외야 루프탑존", desc: "땅땅치킨 루프탑존. 테이블석으로 먹거리 즐기며 편안하게 관람 가능.", tag: "먹거리" },
+    { zone: "5층 프리미엄", desc: "크림새우 맛집 '스테이션' 입점. 경기 시작 전 완판되니 도착 즉시 구매 추천.", tag: "인기" },
+  ],
+  food: [
+    "🍗 땅땅치킨 — 외야 루프탑존 및 1루 2·3층. 허브 순살치킨 인기",
+    "🦐 스테이션 (크림새우) — 5층. 1회 전에 완판 다반사, 도착하자마자 구매",
+    "🥟 한만두 — 3루 쪽. 마라만두·짬뽕만두 특색 메뉴",
+    "🍱 외부 음식 반입 가능 — 단, 캔·유리병류 불가",
   ],
   access: [
-    "지하철 2호선 수성구민운동장역 → 도보 10분 (가장 편리)",
+    "지하철 2호선 수성알파시티역 → 도보 5분 (가장 편리)",
     "순환버스 101·349번 → 라이온즈파크 앞 정류장 하차",
-    "주차 P1·P2 — 경기 3시간 전 개방, 만차 시 수성못 공영주차장",
-    "입장 개문 경기 시작 1시간 30분 전",
+    "자가용: 수성IC 바로 옆 위치. P1·P2 주차장 경기 3시간 전 개방",
+    "만차 시 수성못 공영주차장 이용 후 도보 15분",
   ],
   tips: [
+    "전광판이 외야 우측에 있어 1루석에선 점수 보기 불편할 수 있음",
+    "구장 밖 조명으로 경기 상황 확인 가능: 삼성 리드 시 파란빛, 뒤질 때 빨간빛",
+    "블루존(3루 응원석) 주말 경기는 빠르게 매진 — 사전 예매 필수",
     "모바일 티켓 미리 저장해두기 (인터넷 끊겨도 확인 가능)",
-    "외부 음식 반입 가능 — 단, 캔·유리병 불가",
     "우천 취소 시 티켓 자동 환불 처리",
-    "응원 도구 현장 구매 가능 (라이온즈 공식 굿즈 매장)",
   ],
 };
 
@@ -522,6 +535,7 @@ body { background: #e8edf2; }
 .seat-zone { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
 .seat-desc { font-size: 12px; color: var(--ink2); line-height: 1.5; }
 .seat-tag { display: inline-block; font-size: 10px; font-weight: 700; color: var(--blue); background: var(--blue-light); padding: 2px 7px; border-radius: 20px; margin-top: 6px; }
+.seat-tag-away { color: var(--away) !important; background: var(--away-light) !important; }
 .access-list { display: flex; flex-direction: column; gap: 10px; }
 .access-item { background: var(--white); border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; font-size: 13px; color: var(--ink2); line-height: 1.6; display: flex; align-items: flex-start; gap: 10px; }
 .access-num { width: 20px; height: 20px; background: var(--ink); color: white; border-radius: 50%; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
@@ -775,26 +789,66 @@ function LionsRoadApp() {
 
   const ParkTab = () => (
     <div>
+      {/* 히어로 */}
       <div className="park-hero">
         <div className="park-hero-emoji">🏟️</div>
         <div>
           <div className="park-hero-name">대구삼성<br />라이온즈파크</div>
-          <div className="park-hero-addr">대구 수성구 야구전설로 1<br />수용 인원 약 29,000명</div>
+          <div className="park-hero-addr">{PARK.info.address}<br />{PARK.info.capacity}</div>
         </div>
       </div>
+
+      {/* 구장 특징 */}
       <div className="park-section">
-        <div className="park-section-title">좌석 구성</div>
+        <div className="park-section-title">구장 특징</div>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {[
+            {icon:"🔷", text: PARK.info.dugout},
+            {icon:"⬡", text: PARK.info.shape},
+            {icon:"💡", text:"구장 밖 조명으로 경기 상황 확인: 삼성 리드 시 파란빛, 뒤질 때 빨간빛"},
+            {icon:"📺", text:"전광판이 외야 우측에 위치. 1루석에선 점수 보기 불편할 수 있음"},
+          ].map((item, i) => (
+            <div key={i} style={{background:"var(--white)",border:"1px solid var(--line)",borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"flex-start",gap:10}}>
+              <span style={{fontSize:16,flexShrink:0}}>{item.icon}</span>
+              <span style={{fontSize:12,color:"var(--ink2)",lineHeight:1.6}}>{item.text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="divider" />
+
+      {/* 좌석 안내 */}
+      <div className="park-section">
+        <div className="park-section-title">좌석 안내</div>
         <div className="seat-grid">
           {PARK.seats.map((s, i) => (
             <div key={i} className="seat-card">
               <div className="seat-zone">{s.zone}</div>
               <div className="seat-desc">{s.desc}</div>
-              {s.tag && <div className="seat-tag">{s.tag}</div>}
+              {s.tag && <div className={`seat-tag ${s.tag === "원정석" ? "seat-tag-away" : ""}`}>{s.tag}</div>}
             </div>
           ))}
         </div>
       </div>
+
       <div className="divider" />
+
+      {/* 구장 먹거리 */}
+      <div className="park-section">
+        <div className="park-section-title">구장 먹거리</div>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {PARK.food.map((f, i) => (
+            <div key={i} style={{background:"var(--white)",border:"1px solid var(--line)",borderRadius:12,padding:"11px 14px",fontSize:13,color:"var(--ink2)",lineHeight:1.6}}>
+              {f}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="divider" />
+
+      {/* 오시는 길 */}
       <div className="park-section">
         <div className="park-section-title">오시는 길 & 주차</div>
         <div className="access-list">
@@ -806,7 +860,10 @@ function LionsRoadApp() {
           ))}
         </div>
       </div>
+
       <div className="divider" />
+
+      {/* 꼭 알아두세요 */}
       <div className="park-section">
         <div className="park-section-title">꼭 알아두세요</div>
         <div className="tips-list">
@@ -820,7 +877,6 @@ function LionsRoadApp() {
       </div>
     </div>
   );
-
   const ScheduleTab = () => {
     const games = GAMES_2026[selectedMonth] || [];
     const homeCount = games.filter(g => g.type === "h").length;
